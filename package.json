@@ -1,0 +1,20 @@
+{
+  "name": "saraha-app",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start:dev": "node --watch ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "express": "^5.2.1",
+    "joi": "^18.1.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.3.3"
+  }
+}
