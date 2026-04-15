@@ -10,11 +10,12 @@ import jwt from "jsonwebtoken";
 import { generateTokens } from "../../common/utils/jwt.utils.js";
 import { loginSchema, signupSchema } from "./auth.validation.js";
 import { isValid } from "../../../middlewares/validation.middleware.js";
+import { fileUpload } from "../../common/utils/multer.utils.js";
 const router = Router();
 
 
 
-router.post("/signup",isValid(signupSchema), async (req, res, next) => {
+router.post("/signup",fileUpload().single("image"),isValid(signupSchema), async (req, res, next) => {
   const { email, phoneNumber } = req.body;
   await checkUserExist({
     $or: [
@@ -45,8 +46,8 @@ router.post("/signup",isValid(signupSchema), async (req, res, next) => {
         .json({ message: "Internal server error", error: error.message });
     });
 });
-
-router.post("/login", isValid(loginSchema) , async (req, res, next) => {
+                  
+router.post("/login",fileUpload().none(), isValid(loginSchema) , async (req, res, next) => {
  // get data from request body
   const { email } = req.body;
   

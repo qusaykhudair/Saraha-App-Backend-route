@@ -4,9 +4,9 @@ import {authRouter, userRouter} from "./modules/index.js";
 const app = express();
 const port = 3000;
 connectDB();
-
+// access uploads folder statically by middleware to access images from browser
+app.use("/uploads", express.static("uploads"));
 // paresing data from req 
-
 app.use(express.json());
 
 // routing

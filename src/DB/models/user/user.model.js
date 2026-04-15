@@ -26,6 +26,7 @@ const schema = new Schema(
         return true;
       },
     },
+    profilePic : String
   },
   {
     timestamps : true ,
