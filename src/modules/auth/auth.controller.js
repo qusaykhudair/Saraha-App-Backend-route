@@ -11,63 +11,22 @@ import { generateTokens } from "../../common/utils/jwt.utils.js";
 import { loginSchema, signupSchema } from "./auth.validation.js";
 import { isValid } from "../../../middlewares/validation.middleware.js";
 import { fileUpload } from "../../common/utils/multer.utils.js";
+import { login, singup, verifyAccount } from "./auth.service.js";
 const router = Router();
 
 
 
 router.post("/signup",fileUpload().single("image"),isValid(signupSchema), async (req, res, next) => {
-  const { email, phoneNumber } = req.body;
-  await checkUserExist({
-    $or: [
-      { email: { $eq: email, $exist: true, $ne: null } },
-      { phoneNumber: { $eq: phoneNumber, $exist: true, $ne: null } },
-    ],
-  })
-    .then(async (user) => {
-      if (user) {
-        throw new ConflictException(SYS_MESSAGE.user.alreadyExist);
-      }
-      // prepare data for creating user
-      req.body.role = SYS_ROLE.user;
-      req.body.password = await hash(req.body.password);
-      // Encrypt phone number if it exists
-      if(req.body.phoneNumber){
-        req.body.phoneNumber= encryption(phoneNumber);
-      }
-      const createUser = await createUser(req.body);
+const createdUser = await singup(req.body);
       return res
         .status(201)
-        .json({ message: SYS_MESSAGE.user.created, data: createUser });
+        .json({ message: SYS_MESSAGE.user.created, data: createdUser });
       // Proceed with signup logic
     })
-    .catch((error) => {
-      return res
-        .status(500)
-        .json({ message: "Internal server error", error: error.message });
-    });
-});
                   
 router.post("/login",fileUpload().none(), isValid(loginSchema) , async (req, res, next) => {
- // get data from request body
-  const { email } = req.body;
-  
-  // check user exist or not
-  const userExist = await checkUserExist({
-    email: { $eq: email, $exist: true, $ne: null },
-  });
-  if (!userExist) {
-    throw new NotFoundException(SYS_MESSAGE.user.notFound);
-  }
 
-  // compare password
-  const match = await comparePassword(req.body.password, userExist?.password||"DefaultPassword");
-  if (!match) {
-    throw new NotFoundException(SYS_MESSAGE.user.invalidPassword);
-  }
-  // remove password from response *** we cant use delete because its a bason file and delete will not work on it
-userExist.password = undefined;
-// generate token
-const { accessToken, refreshToken } = generateTokens({ sub: userExist._id , role: userExist.role });
+  const { accessToken, refreshToken } = await login(req.body);
   // send response
   return res.status(200).json({ message: "Login successful", data: { accessToken, refreshToken } });
 });
@@ -89,4 +48,14 @@ const { accessToken, refreshToken } = generateTokens(payload);
 
 });
 
+router.patch("/verify-account", async (req, res, next) => {
+await verifyAccount(req.body).then(() => {
+  return res.status(200).json({ message: "Account verified successfully" });
+})
+.catch((error) => {
+  return res
+    .status(400)
+    .json({ message: "Account verification failed", error: error.message });
+});
+})
 export default router;

@@ -26,8 +26,10 @@ const schema = new Schema(
         return true;
       },
     },
-    profilePic : String
+    profilePic : String ,
+    isEmailVarified : { type: Boolean, default: false },
   },
+ 
   {
     timestamps : true ,
     
