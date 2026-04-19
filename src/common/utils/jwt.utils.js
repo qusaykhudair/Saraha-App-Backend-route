@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-
 export function generateTokens(payload){
 const accessToken = jwt.sign(payload, "djdjjdsjajajajajajquiuwququququ", {
   expiresIn: 60,

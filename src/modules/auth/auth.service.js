@@ -5,6 +5,8 @@ import { BadRequestException, ConflictException, NotFoundException } from "../..
 import { checkUserExist, createUser } from "../user/user.service.js";
 import { generateTokens } from "../../common/utils/jwt.utils.js";
 import { otpRepository } from "../../DB/models/otp/otp.repsitory.js";
+import { userRepository } from "../../DB/models/user/user.repository.js";
+import { tokenRepository } from "../../DB/models/token/token.repository.js";
 
 export const singup = async (body) => {
   const { email, phoneNumber } = body;
@@ -25,20 +27,8 @@ export const singup = async (body) => {
       if (body.phoneNumber) {
         body.phoneNumber = encryption(phoneNumber);
       }
-      // create otp for user verification
-      const otp = Math.floor(100000 + Math.random() * 900000);
-      // save otp in database
-      await otpRepository.create({
-        email: body.email,
-        otp,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      }); // otp will expire after 5 minutes
-      // send otp to user by email
-      await sendEmail({
-        to: email,
-        subject: "Your OTP for Saraha App",
-        html: `<p>Your OTP is <strong>${otp}</strong>. It will expire in 5 minutes.</p>`,
-      });
+      // send otp to user email for verification
+await sendOtp(body);
       // create user
       const createdUser = await createUser(body);
     })
@@ -83,6 +73,12 @@ if (!otpDoc) {
   throw new BadRequestException("expired otp");
 }
 if (otpDoc.otp !== otp) {
+ otpDoc.attempts += 1;
+ await otpRepository.update({ _id: otpDoc._id }, { attempts: otpDoc.attempts });
+ if (otpDoc.attempts >= 5) {
+  await otpRepository.delete({ _id: otpDoc._id });
+  throw new BadRequestException("otp expired due to too many attempts");
+ }
   throw new BadRequestException("invalid otp");
 }
 // update user isEmailVarified to true
@@ -91,3 +87,41 @@ await UserRepository.update({ email }, { isEmailVarified: true });
 await otpRepository.delete({ _id: otpDoc._id });
 return true;
 }
+
+export async function sendOtp(body){
+  const { email } = body;
+  // check OTP valid on database
+  const otpDoc = await otpRepository.getOne({ email });
+  if(otpDoc){
+    throw new BadRequestException("otp already sent and still valid");
+  }
+ // create otp for user verification
+      const otp = Math.floor(100000 + Math.random() * 900000);
+      // save otp in database
+      await otpRepository.create({
+        email: body.email,
+        otp,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      }); // otp will expire after 5 minutes
+      // send otp to user by email
+      await sendEmail({
+        to: email,
+        subject: "Your OTP for Saraha App",
+        html: `<p>Your OTP is <strong>${otp}</strong>. It will expire in 5 minutes.</p>`,
+      });
+}
+
+export const logoutFromAllDevices = async (userId) => {
+  // Invalidate all tokens for the user by changing a field in the database
+  await userRepository.update({ _id: userId }, { crdentialUpdateAt: Date.now() });
+  return true;
+}
+
+// Logout from current device by blacklisting the token
+export const logout = async (tokenPayload, user) => {
+  await tokenRepository.create({
+    token: tokenPayload.jti,
+    userId: user._id,
+    expiresAt: tokenPayload.exp * 1000,
+  });
+};

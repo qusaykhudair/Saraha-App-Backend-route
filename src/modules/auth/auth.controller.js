@@ -11,7 +11,8 @@ import { generateTokens } from "../../common/utils/jwt.utils.js";
 import { loginSchema, signupSchema } from "./auth.validation.js";
 import { isValid } from "../../../middlewares/validation.middleware.js";
 import { fileUpload } from "../../common/utils/multer.utils.js";
-import { login, singup, verifyAccount } from "./auth.service.js";
+import { login, logout, logoutFromAllDevices, sendOtp, singup, verifyAccount } from "./auth.service.js";
+import { isAuthenticated } from "../../../middlewares/auth.middleware.js";
 const router = Router();
 
 
@@ -58,4 +59,22 @@ await verifyAccount(req.body).then(() => {
     .json({ message: "Account verification failed", error: error.message });
 });
 })
+
+router.post("/send-otp", async (req, res, next) => {
+await sendOtp(req.body).then(() => {
+  return res.status(200).json({ message: "OTP sent successfully" })}).catch((error) => {
+    return res
+      .status(400)
+      .json({ message: "Failed to send OTP", error: error.message });
+  })})
+
+  router.patch("/logout-all-devices", isAuthenticated, async (req, res, next) => {
+  await logoutFromAllDevices(req.user);
+  return res.status(200).json({ message: "Logged out from all devices successfully" }); 
+  })
+
+    router.post("/logout", isAuthenticated, async (req, res, next) => {
+  await logout(req.user , req.payload);
+  return res.status(200).json({ message: "Logged out successfully" }); 
+  })
 export default router;

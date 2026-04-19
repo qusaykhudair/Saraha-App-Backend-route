@@ -5,6 +5,7 @@ const schema = new Schema({
     otp: { type: String, required: true },
     // ttl for otp -- time to live
     expiresAt: { type: Date, index: { expires: 0 } },
+    attempts: { type: Number, default: 0 },
 });
 
 export const Otp = model("Otp", schema);
