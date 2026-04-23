@@ -6,7 +6,13 @@ const schema = new Schema(
   {
     userName: { type: String, required: true, minlength: 2, maxlength: 20 },
     email: { type: String, required: true, trim: true, lowercase: true },
-    password: { type: String, required: true },
+    provider: { type: String, enum: ["system", "google"], default: "system" },
+    password: { type: String, required: function () {
+        if (this.provider === "google") {
+          return false;
+        }
+        return true;}
+    },
     gender: {
       type: Number,
       enum: Object.values(SYS_GENDER),
@@ -27,7 +33,7 @@ const schema = new Schema(
       },
     },
     profilePic : String ,
-    isEmailVarified : { type: Boolean, default: false },
+    isEmailVarified : { type: Boolean, default: true },
     crdentialUpdateAt : { type: Date, default: Date.now() },
   },
  

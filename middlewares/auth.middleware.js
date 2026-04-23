@@ -21,6 +21,11 @@ export const isAuthenticated = async(req, res, next) => {
       if (tokenExists) {
         throw new BadRequestException("Token is blacklisted, please login again");
       }
+      // check if token is removed (blacklisted) in Redis
+      const tokenExist = await redisClient.get(`token:${payload.jti}`);
+      if(tokenExist){
+        throw new BadRequestException("Token is removed, please login again");
+      }
       // inject user and payload to req object
       req.user = user;
       req.payload = payload;

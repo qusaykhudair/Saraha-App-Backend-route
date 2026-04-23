@@ -11,7 +11,7 @@ import { generateTokens } from "../../common/utils/jwt.utils.js";
 import { loginSchema, signupSchema } from "./auth.validation.js";
 import { isValid } from "../../../middlewares/validation.middleware.js";
 import { fileUpload } from "../../common/utils/multer.utils.js";
-import { login, logout, logoutFromAllDevices, sendOtp, singup, verifyAccount } from "./auth.service.js";
+import { login, loginWithGoogle, logout, logoutFromAllDevices, sendOtp, singup, verifyAccount } from "./auth.service.js";
 import { isAuthenticated } from "../../../middlewares/auth.middleware.js";
 const router = Router();
 
@@ -77,4 +77,11 @@ await sendOtp(req.body).then(() => {
   await logout(req.user , req.payload);
   return res.status(200).json({ message: "Logged out successfully" }); 
   })
+
+  router.post("login-with-google", async (req, res, next) => {
+    const { googleToken } = req.body;
+    // Implement Google login logic here
+   const {accessToken , refreshToken } = await loginWithGoogle(googleToken);
+    return res.status(200).json({ message: "Google login successful", data: { accessToken, refreshToken } });
+  });
 export default router;
