@@ -1,6 +1,6 @@
 import express from "express"
 import { connectDB } from "./DB/connection.js";
-import {authRouter, userRouter} from "./modules/index.js";
+import {authRouter, messageRouter, userRouter} from "./modules/index.js";
 import cors from "cors";
 import { connectRedis } from "./DB/models/redis.connection.js";
 const app = express();
@@ -28,6 +28,8 @@ app.use(express.json());
 app.use("/auth", authRouter);
 
 app.use("/user", userRouter);
+
+app.use("/message", messageRouter);
 // global error handler
 app.use((err , req , res , next)=>{
     if(err.message === "jwt expired"){

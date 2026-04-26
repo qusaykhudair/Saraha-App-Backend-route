@@ -19,11 +19,12 @@ limits: {
       },
     storage: diskStorage({
       destination: (req, file, cb) => {
+        const folder = req.user ? `uploads/${req.user._id}` : `uploads/${req.params.receiverId}/messages`;
         // create folder with user id to save his images
-        if (!fs.existsSync(`uploads/${req.user._id}`)) {
-          fs.mkdirSync(`uploads/${req.user._id}`);
+        if (!fs.existsSync(folder)) {
+          fs.mkdirSync(folder , { recursive: true });
         }
-        cb(null, `uploads /${req.user._id}`);
+        cb(null, folder);
       }, // string or function >> "uploads" >> 
       filename: (req, file, cb) => {
         cb(null, `${Date.now()}-${Math.random()}-${file.originalname}`)
