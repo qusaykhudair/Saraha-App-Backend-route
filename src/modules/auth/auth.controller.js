@@ -11,7 +11,7 @@ import { generateTokens } from "../../common/utils/jwt.utils.js";
 import { loginSchema, signupSchema } from "./auth.validation.js";
 import { isValid } from "../../../middlewares/validation.middleware.js";
 import { fileUpload } from "../../common/utils/multer.utils.js";
-import { login, loginWithGoogle, logout, logoutFromAllDevices, sendOtp, singup, verifyAccount } from "./auth.service.js";
+import { login, loginWithGoogle, logout, logoutFromAllDevices, refreshTokenService, sendOtp, singup, verifyAccount } from "./auth.service.js";
 import { isAuthenticated } from "../../../middlewares/auth.middleware.js";
 const router = Router();
 
@@ -33,17 +33,9 @@ router.post("/login",fileUpload().none(), isValid(loginSchema) , async (req, res
 });
 
 router.get("/refresh-token", async (req, res, next) => {
-// req.headers
-const { authorization } = req.headers; // refresh
-// check token valid
-const payload = jwt.verify(
-  authorization,
-  "djdjjdsjajajajajajquiuwququququ"
-); // valid - expire
-console.log({ payloadFromRefresh: payload });
-const { accessToken, refreshToken } = generateTokens(payload);
+    const { authorization } = req.headers; // refresh
 
-
+ const {accessToken , refreshToken} = await refreshTokenService(authorization)
   // send response
   return res.status(200).json({ message: "Token refreshed successfully", data: { accessToken, refreshToken } });
 

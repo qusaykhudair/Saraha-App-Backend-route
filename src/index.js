@@ -1,8 +1,11 @@
+import cors from "cors";
 import express from "express"
+import helmet from "helmet";
 import { connectDB } from "./DB/connection.js";
 import {authRouter, messageRouter, userRouter} from "./modules/index.js";
-import cors from "cors";
+
 import { connectRedis } from "./DB/models/redis.connection.js";
+import rateLimit from "express-rate-limit";
 const app = express();
 const port = 3000;
 
@@ -21,6 +24,20 @@ connectRedis();
 app.use(cors("*"));
 // access uploads folder statically by middleware to access images from browser
 app.use("/uploads", express.static("uploads"));
+app.use(helmet())
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	limit: 50, // Limit each IP to 50 requests per `window` (here, per 15 minutes).
+     statusCode : 500 , 
+     legacyHeaders : false,
+     keyGenerator:(req , res , next)=>{
+        return `${req.ip}:${req.path}`;
+     }
+})
+
+// Apply the rate limiting middleware to all requests.
+app.use(limiter)
+
 // paresing data from req 
 app.use(express.json());
 
@@ -30,6 +47,7 @@ app.use("/auth", authRouter);
 app.use("/user", userRouter);
 
 app.use("/message", messageRouter);
+
 // global error handler
 app.use((err , req , res , next)=>{
     if(err.message === "jwt expired"){

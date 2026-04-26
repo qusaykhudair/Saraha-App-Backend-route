@@ -1,7 +1,7 @@
 import { SYS_ROLE } from "../../common/constant/role.constant.js";
 import { SYS_MESSAGE } from "../../common/constant/message.constant.js";
 import { comparePassword, hash } from "../../common/utils/bycrypt.utils.js";
-import { BadRequestException, ConflictException, NotFoundException } from "../../common/utils/error.utils.js";
+import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from "../../common/utils/error.utils.js";
 import { checkUserExist, createUser } from "../user/user.service.js";
 import { generateTokens } from "../../common/utils/jwt.utils.js";
 import { otpRepository } from "../../DB/models/otp/otp.repsitory.js";
@@ -9,6 +9,7 @@ import { userRepository } from "../../DB/models/user/user.repository.js";
 import { tokenRepository } from "../../DB/models/token/token.repository.js";
 import { OAuth2Client } from "google-auth-library";
 import { redisClient } from "../../DB/models/redis.connection.js";
+import jwt from "jsonwebtoken";
 
 export const singup = async (body) => {
   const { email, phoneNumber } = body;
@@ -65,7 +66,9 @@ export const login = async (body) => {
     userExist.password = undefined;
     // generate token
     const { accessToken, refreshToken } = generateTokens({ sub: userExist._id , role: userExist.role , provider: userExist.provider });
-return { accessToken, refreshToken };
+
+await redisClient.set(`refreshToken:${userExist._id}`, refreshToken)
+    return { accessToken, refreshToken };
 }   
 
 export const verifyAccount = async (body) => {
@@ -172,5 +175,26 @@ return generateTokens({ sub: newUser._id, role: newUser.role , provider: newUser
   // If the user exists, generate tokens for the existing user
   return generateTokens({ sub: user._id, role: user.role , provider: user.provider });
 
+
+}
+
+export const refreshTokenService= async(authorization)=>{
+  // check token valid
+  const payload = jwt.verify(
+    authorization,
+    "djdjjdsjajajajajajquiuwququququ"
+  ); // valid - expire
+const cashedRefreshToken = await redisClient.get(`refreshToken : ${payload.sub}`)
+if (cashedRefreshToken != authorization){
+  await logoutFromAllDevices({_id:payload.sub})
+  await redisClient.del(`refreshToken : ${payload.sub}`)
+  throw new UnauthorizedException("you are not authorized")
+}
+
+  delete payload.iat ;
+  delete payload.exp;
+  const {accessToken , refreshToken}= generateTokens(payload);
+  await redisClient.set(`refreshToken : ${payload.sub}` , refreshToken)
+  return {refreshToken , accessToken}
 
 }
